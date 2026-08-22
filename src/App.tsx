@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type Lesson = {
-  id: string; number: number; title: string; englishTitle: string; color: string; image: string; scene: string; goal: string;
+  id: string; unit: number; number: number; title: string; englishTitle: string; color: string; image: string; scene: string; goal: string;
   conversation: { side: "coach" | "learner"; text: string; jp: string }[];
   listening: { prompt: string; choices: string[]; answer: string };
   order: { words: string[]; answer: string }; speaking: string;
@@ -11,7 +11,7 @@ type Lesson = {
 
 const lessons: Lesson[] = [
   {
-    id: "name", number: 1, title: "名前は何ですか？", englishTitle: "What is your name?", color: "#ff9b45", image: "./lesson-art-name.jpg",
+    id: "name", unit: 1, number: 1, title: "名前は何ですか？", englishTitle: "What is your name?", color: "#ff9b45", image: "./lesson-art-name.jpg",
     scene: "はじめて会った友だちに名前を伝えよう", goal: "My name is ～. を使って自己紹介できる",
     conversation: [
       { side: "coach", text: "Hello! My name is Tom. What is your name?", jp: "こんにちは！ぼくはトム。あなたの名前は？" },
@@ -23,7 +23,7 @@ const lessons: Lesson[] = [
     order: { words: ["name", "Yuzu", "My", "is"], answer: "My name is Yuzu" }, speaking: "My name is Yuzu.",
   },
   {
-    id: "age", number: 2, title: "何歳ですか？", englishTitle: "How old are you?", color: "#5cc8b0", image: "./lesson-art-age.jpg",
+    id: "age", unit: 1, number: 2, title: "何歳ですか？", englishTitle: "How old are you?", color: "#5cc8b0", image: "./lesson-art-age.jpg",
     scene: "新しい友だちとおたがいの年齢を聞こう", goal: "年齢をたずねて、I’m ～ years old. で答えられる",
     conversation: [
       { side: "coach", text: "How old are you?", jp: "何歳ですか？" },
@@ -35,7 +35,7 @@ const lessons: Lesson[] = [
     order: { words: ["ten", "old", "I'm", "years"], answer: "I'm ten years old" }, speaking: "I'm ten years old.",
   },
   {
-    id: "favorite", number: 3, title: "何が好きですか？", englishTitle: "What do you like?", color: "#7774db", image: "./lesson-art-favorite.jpg",
+    id: "favorite", unit: 1, number: 3, title: "何が好きですか？", englishTitle: "What do you like?", color: "#7774db", image: "./lesson-art-favorite.jpg",
     scene: "好きなことを話して友だちをもっと知ろう", goal: "I like ～. を使って好きなものを言える",
     conversation: [
       { side: "coach", text: "What do you like?", jp: "何が好き？" },
@@ -46,6 +46,144 @@ const lessons: Lesson[] = [
     listening: { prompt: "What do you like?", choices: ["I like basketball.", "It's a basketball.", "I can jump."], answer: "I like basketball." },
     order: { words: ["basketball", "like", "I"], answer: "I like basketball" }, speaking: "I like basketball.",
   },
+  {
+    id: "red-pen", unit: 2, number: 1, title: "赤色のペンを持っていますか？", englishTitle: "Do you have a red pen?", color: "#ef6f74", image: "./lesson-art-belongings.jpg",
+    scene: "友だちに赤いペンを借りられるか聞いてみよう", goal: "Do you have ～? で持ち物をたずねられる",
+    conversation: [
+      { side: "coach", text: "Do you have a red pen?", jp: "赤いペンを持っていますか？" },
+      { side: "learner", text: "Yes, I do. Here you are.", jp: "はい。どうぞ。" },
+      { side: "coach", text: "Thank you!", jp: "ありがとう！" },
+      { side: "learner", text: "You're welcome.", jp: "どういたしまして。" },
+    ],
+    listening: { prompt: "Do you have a red pen?", choices: ["Yes, I do.", "It's a red pen.", "I like red."], answer: "Yes, I do." },
+    order: { words: ["a red pen", "you", "Do", "have"], answer: "Do you have a red pen" }, speaking: "Yes, I do.",
+  },
+  {
+    id: "pocket", unit: 2, number: 2, title: "ポケットに何を持っていますか？", englishTitle: "What do you have in your pocket?", color: "#6abeb1", image: "./lesson-art-belongings.jpg",
+    scene: "ポケットの中にある物を英語で伝えよう", goal: "I have ～. で持っている物を言える",
+    conversation: [
+      { side: "coach", text: "What do you have in your pocket?", jp: "ポケットに何を持っていますか？" },
+      { side: "learner", text: "I have a key in my pocket.", jp: "ポケットに鍵を持っています。" },
+      { side: "coach", text: "Is it a house key?", jp: "家の鍵ですか？" },
+      { side: "learner", text: "Yes, it is.", jp: "はい、そうです。" },
+    ],
+    listening: { prompt: "What do you have in your pocket?", choices: ["I have a key.", "It is a pocket.", "Yes, I do."], answer: "I have a key." },
+    order: { words: ["a key", "I", "have", "in my pocket"], answer: "I have a key in my pocket" }, speaking: "I have a key in my pocket.",
+  },
+  {
+    id: "cake", unit: 2, number: 3, title: "ケーキが食べたいですか？", englishTitle: "Would you like some cake?", color: "#e886aa", image: "./lesson-art-food.jpg",
+    scene: "友だちにケーキをすすめてもらおう", goal: "Would you like ～? に答えられる",
+    conversation: [
+      { side: "coach", text: "Would you like some cake?", jp: "ケーキはいかがですか？" },
+      { side: "learner", text: "Yes, please.", jp: "はい、お願いします。" },
+      { side: "coach", text: "Here you are.", jp: "どうぞ。" },
+      { side: "learner", text: "Thank you. It looks delicious!", jp: "ありがとう。おいしそう！" },
+    ],
+    listening: { prompt: "Would you like some cake?", choices: ["Yes, please.", "Yes, it is cake.", "I have a cake."], answer: "Yes, please." },
+    order: { words: ["please", "Yes"], answer: "Yes please" }, speaking: "Yes, please.",
+  },
+  {
+    id: "lunch", unit: 2, number: 4, title: "昼食に何を食べたいですか？", englishTitle: "What would you like for lunch?", color: "#f1aa4f", image: "./lesson-art-food.jpg",
+    scene: "ランチに食べたい物を選んで伝えよう", goal: "I'd like ～. で希望を伝えられる",
+    conversation: [
+      { side: "coach", text: "What would you like for lunch?", jp: "昼食に何を食べたいですか？" },
+      { side: "learner", text: "I'd like a sandwich.", jp: "サンドイッチが食べたいです。" },
+      { side: "coach", text: "Would you like an apple, too?", jp: "りんごもいかがですか？" },
+      { side: "learner", text: "Yes, please.", jp: "はい、お願いします。" },
+    ],
+    listening: { prompt: "What would you like for lunch?", choices: ["I'd like a sandwich.", "It's lunch time.", "I ate breakfast."], answer: "I'd like a sandwich." },
+    order: { words: ["a sandwich", "like", "I'd"], answer: "I'd like a sandwich" }, speaking: "I'd like a sandwich.",
+  },
+  {
+    id: "help", unit: 2, number: 5, title: "『助けてください』と伝えよう", englishTitle: "Please help me.", color: "#768bdc", image: "./lesson-art-safety.jpg",
+    scene: "困ったときに先生へ助けを求めよう", goal: "Please help me. を落ち着いて言える",
+    conversation: [
+      { side: "coach", text: "Are you okay?", jp: "大丈夫ですか？" },
+      { side: "learner", text: "Please help me.", jp: "助けてください。" },
+      { side: "coach", text: "Of course. I'm here to help.", jp: "もちろん。助けるよ。" },
+      { side: "learner", text: "Thank you.", jp: "ありがとう。" },
+    ],
+    listening: { prompt: "Please help me.", choices: ["Of course.", "I'm ten years old.", "It's sunny."], answer: "Of course." },
+    order: { words: ["me", "Please", "help"], answer: "Please help me" }, speaking: "Please help me.",
+  },
+  {
+    id: "stop", unit: 2, number: 6, title: "『止まってください』と伝えよう", englishTitle: "Please stop.", color: "#e46f68", image: "./lesson-art-safety.jpg",
+    scene: "危ないときに、はっきり止まってと伝えよう", goal: "Please stop. を安全のために言える",
+    conversation: [
+      { side: "coach", text: "The ball is coming!", jp: "ボールが来るよ！" },
+      { side: "learner", text: "Please stop!", jp: "止まってください！" },
+      { side: "coach", text: "Okay. Thank you for telling me.", jp: "わかった。教えてくれてありがとう。" },
+      { side: "learner", text: "You're welcome.", jp: "どういたしまして。" },
+    ],
+    listening: { prompt: "Please stop.", choices: ["Okay.", "Please help me.", "Let's eat."], answer: "Okay." },
+    order: { words: ["stop", "Please"], answer: "Please stop" }, speaking: "Please stop.",
+  },
+  {
+    id: "weekday", unit: 3, number: 1, title: "今日は何曜日ですか？", englishTitle: "What day is it today?", color: "#65b9ac", image: "./lesson-art-calendar.jpg",
+    scene: "カレンダーを見ながら今日の曜日を言おう", goal: "It's Monday. の形で曜日を答えられる",
+    conversation: [
+      { side: "coach", text: "What day is it today?", jp: "今日は何曜日ですか？" },
+      { side: "learner", text: "It's Monday.", jp: "月曜日です。" },
+      { side: "coach", text: "Do we have P.E. today?", jp: "今日は体育がありますか？" },
+      { side: "learner", text: "Yes, we do!", jp: "はい、あります！" },
+    ],
+    listening: { prompt: "What day is it today?", choices: ["It's Monday.", "It's August.", "It's seven o'clock."], answer: "It's Monday." },
+    order: { words: ["Monday", "It's"], answer: "It's Monday" }, speaking: "It's Monday.",
+  },
+  {
+    id: "date", unit: 3, number: 2, title: "今日は何日ですか？", englishTitle: "What's the date today?", color: "#8a7cda", image: "./lesson-art-calendar.jpg",
+    scene: "今日の日付を英語で確認しよう", goal: "月と日にちを英語で答えられる",
+    conversation: [
+      { side: "coach", text: "What's the date today?", jp: "今日は何日ですか？" },
+      { side: "learner", text: "It's August twenty-second.", jp: "8月22日です。" },
+      { side: "coach", text: "Thank you!", jp: "ありがとう！" },
+      { side: "learner", text: "You're welcome.", jp: "どういたしまして。" },
+    ],
+    listening: { prompt: "What's the date today?", choices: ["It's August twenty-second.", "It's Monday.", "It's sunny."], answer: "It's August twenty-second." },
+    order: { words: ["August", "It's", "twenty-second"], answer: "It's August twenty-second" }, speaking: "It's August twenty-second.",
+  },
+  {
+    id: "birthday", unit: 3, number: 3, title: "誕生日はいつですか？", englishTitle: "When is your birthday?", color: "#e889a8", image: "./lesson-art-calendar.jpg",
+    scene: "友だちと誕生日を教え合おう", goal: "My birthday is ～. で誕生日を言える",
+    conversation: [
+      { side: "coach", text: "When is your birthday?", jp: "誕生日はいつですか？" },
+      { side: "learner", text: "My birthday is May thirteenth.", jp: "私の誕生日は5月13日です。" },
+      { side: "coach", text: "That's coming soon!", jp: "もうすぐだね！" },
+      { side: "learner", text: "I can't wait!", jp: "楽しみ！" },
+    ],
+    listening: { prompt: "When is your birthday?", choices: ["My birthday is May thirteenth.", "I'm thirteen years old.", "It's my cake."], answer: "My birthday is May thirteenth." },
+    order: { words: ["May thirteenth", "birthday", "My", "is"], answer: "My birthday is May thirteenth" }, speaking: "My birthday is May thirteenth.",
+  },
+  {
+    id: "time", unit: 3, number: 4, title: "いま何時ですか？", englishTitle: "What time is it now?", color: "#ef9c55", image: "./lesson-art-calendar.jpg",
+    scene: "時計を見ながら今の時刻を伝えよう", goal: "It's ～. で時刻を答えられる",
+    conversation: [
+      { side: "coach", text: "What time is it now?", jp: "いま何時ですか？" },
+      { side: "learner", text: "It's seven thirty.", jp: "7時30分です。" },
+      { side: "coach", text: "It's time for breakfast.", jp: "朝ごはんの時間です。" },
+      { side: "learner", text: "Okay, let's eat!", jp: "うん、食べよう！" },
+    ],
+    listening: { prompt: "What time is it now?", choices: ["It's seven thirty.", "It's Saturday.", "It's sunny."], answer: "It's seven thirty." },
+    order: { words: ["seven", "It's", "thirty"], answer: "It's seven thirty" }, speaking: "It's seven thirty.",
+  },
+  {
+    id: "weather", unit: 3, number: 5, title: "どんな天気ですか？", englishTitle: "How's the weather?", color: "#62add2", image: "./lesson-art-calendar.jpg",
+    scene: "窓の外を見て今日の天気を話そう", goal: "It's sunny. など天気を英語で言える",
+    conversation: [
+      { side: "coach", text: "How's the weather today?", jp: "今日の天気はどうですか？" },
+      { side: "learner", text: "It's sunny.", jp: "晴れです。" },
+      { side: "coach", text: "Let's play outside!", jp: "外で遊ぼう！" },
+      { side: "learner", text: "Great idea!", jp: "いいね！" },
+    ],
+    listening: { prompt: "How's the weather today?", choices: ["It's sunny.", "It's Monday.", "It's three o'clock."], answer: "It's sunny." },
+    order: { words: ["sunny", "It's"], answer: "It's sunny" }, speaking: "It's sunny.",
+  },
+];
+
+const units = [
+  { number: 1, label: "英語表現①", title: "はじめて会ったときの会話", note: "名前・年齢・好きなもの" },
+  { number: 2, label: "英語表現②", title: "持ち物・食事・安全の会話", note: "ペン・ポケット・ケーキ・昼食・HELP・STOP" },
+  { number: 3, label: "英語表現③", title: "毎日のことを話す会話", note: "曜日・日付・誕生日・時刻・天気" },
 ];
 
 type Stage = "listen" | "order" | "speak" | "talk";
@@ -150,13 +288,13 @@ export default function Home() {
       <section className="dashboard">
         <div className="welcome-row"><div><p className="eyebrow">ENGLISH CONVERSATION</p><h1>今日も、ひとこと<br /><em>英語で話そう。</em></h1><p className="lead">聞いて、並べて、声に出す。1日5分の英会話。</p></div><div className="progress-orbit" style={{ "--progress": `${percent * 3.6}deg` } as React.CSSProperties}><div><b>{percent}%</b><span>コース進捗</span></div></div></div>
         <section className="continue-card">
-          <div className="lesson-badge">LESSON {activeLesson.number}</div>
+          <div className="lesson-badge">UNIT {activeLesson.unit} · LESSON {activeLesson.number}</div>
           <div className="continue-copy"><span>つづきから</span><h2>{activeLesson.title}</h2><p>{activeLesson.englishTitle}</p></div>
           <div className="hero-scene"><img src={activeLesson.image} alt={activeLesson.scene} /></div>
           <button className="primary-button" onClick={() => startLesson(activeLesson)}>レッスン開始 <span>→</span></button>
         </section>
-        <div className="section-heading"><div><p>LEVEL 1</p><h2>初めての英会話</h2></div><span>{completed.length} / {lessons.length} 完了</span></div>
-        <div className="lesson-grid">{lessons.map((lesson) => { const done = completed.includes(lesson.id); return <button key={lesson.id} className={`lesson-card ${activeLesson.id === lesson.id ? "selected" : ""}`} onClick={() => setActiveLesson(lesson)} style={{ "--lesson": lesson.color } as React.CSSProperties}><div className="lesson-thumb"><img src={lesson.image} alt="" /><span>{done ? "✓" : lesson.number}</span></div><div className="lesson-text"><span>LESSON {lesson.number}</span><h3>{lesson.title}</h3><p>{lesson.englishTitle}</p></div><div className="lesson-arrow">›</div></button>; })}</div>
+        <div className="section-heading"><div><p>LEVEL 1 · 全14レッスン</p><h2>初めての英会話</h2></div><span>{completed.length} / {lessons.length} 完了</span></div>
+        <div className="course-units">{units.map((unit) => { const unitLessons = lessons.filter((lesson) => lesson.unit === unit.number); const unitDone = unitLessons.filter((lesson) => completed.includes(lesson.id)).length; return <section className="course-unit" key={unit.number}><div className="unit-heading"><div><span>{unit.label}</span><h3>{unit.title}</h3><p>{unit.note}</p></div><b>{unitDone}/{unitLessons.length}</b></div><div className="lesson-grid">{unitLessons.map((lesson) => { const done = completed.includes(lesson.id); return <button key={lesson.id} className={`lesson-card ${activeLesson.id === lesson.id ? "selected" : ""}`} onClick={() => setActiveLesson(lesson)} style={{ "--lesson": lesson.color } as React.CSSProperties}><div className="lesson-thumb"><img src={lesson.image} alt="" /><span>{done ? "✓" : lesson.number}</span></div><div className="lesson-text"><span>UNIT {lesson.unit} · LESSON {lesson.number}</span><h3>{lesson.title}</h3><p>{lesson.englishTitle}</p></div><div className="lesson-arrow">›</div></button>; })}</div></section>; })}</div>
       </section>
     </div>
   </main>;
@@ -166,9 +304,9 @@ function LessonPlayer({ lesson, stage, setStage, sound, music, se, onToggleMusic
   const stages: Stage[] = ["listen", "order", "speak", "talk"]; const labels = ["聞く", "ならべる", "話す", "会話"]; const index = stages.indexOf(stage);
   const next = () => { if (index < stages.length - 1) setStage(stages[index + 1]); else { onComplete(); onExit(); } };
   return <main className="player-shell">
-    <header className="player-header"><button className="close-button" onClick={() => { playSfx("tap"); onExit(); }} aria-label="レッスンを閉じる">×</button><div className="player-title"><span>LESSON {lesson.number}</span><b>{lesson.title}</b></div><div className="stage-progress">{stages.map((item, i) => <i key={item} className={i <= index ? "filled" : ""} />)}</div><div className="player-audio"><button className={music ? "on" : ""} onClick={onToggleMusic}>♫</button><button className={se ? "on" : ""} onClick={onToggleSe}>♬</button></div><span className="step-label">{index + 1} / 4</span></header>
+    <header className="player-header"><button className="close-button" onClick={() => { playSfx("tap"); onExit(); }} aria-label="レッスンを閉じる">×</button><div className="player-title"><span>UNIT {lesson.unit} · LESSON {lesson.number}</span><b>{lesson.title}</b></div><div className="stage-progress">{stages.map((item, i) => <i key={item} className={i <= index ? "filled" : ""} />)}</div><div className="player-audio"><button className={music ? "on" : ""} onClick={onToggleMusic}>♫</button><button className={se ? "on" : ""} onClick={onToggleSe}>♬</button></div><span className="step-label">{index + 1} / 4</span></header>
     <div className="lesson-layout">
-      <aside className="lesson-guide"><div className="guide-number">0{lesson.number}</div><p>今回のゴール</p><h1>{lesson.title}</h1><p className="guide-en">{lesson.englishTitle}</p><div className="goal-box"><span>✓</span>{lesson.goal}</div><div className="guide-scene"><img src={lesson.image} alt={lesson.scene} /><small>{lesson.scene}</small></div><div className="stage-list">{labels.map((label, i) => <button key={label} className={i === index ? "active" : i < index ? "done" : ""} onClick={() => i <= index && setStage(stages[i])}><span>{i < index ? "✓" : i + 1}</span>{label}</button>)}</div></aside>
+      <aside className="lesson-guide"><div className="guide-number">{lesson.unit}-{lesson.number}</div><p>今回のゴール</p><h1>{lesson.title}</h1><p className="guide-en">{lesson.englishTitle}</p><div className="goal-box"><span>✓</span>{lesson.goal}</div><div className="guide-scene"><img src={lesson.image} alt={lesson.scene} /><small>{lesson.scene}</small></div><div className="stage-list">{labels.map((label, i) => <button key={label} className={i === index ? "active" : i < index ? "done" : ""} onClick={() => i <= index && setStage(stages[i])}><span>{i < index ? "✓" : i + 1}</span>{label}</button>)}</div></aside>
       <section className="exercise-area">{stage === "listen" && <Listening lesson={lesson} sound={sound} onDone={next} />}{stage === "order" && <Ordering lesson={lesson} onDone={next} />}{stage === "speak" && <Speaking lesson={lesson} onDone={next} />}{stage === "talk" && <Conversation lesson={lesson} onDone={next} />}</section>
     </div>
   </main>;
