@@ -273,7 +273,8 @@ function Speaking({ lesson, onDone }: { lesson: Lesson; onDone: () => void }) {
       }
 
       const Recognition = (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition;
-      if (Recognition) {
+      const isIPadOrIPhone = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (Recognition && !isIPadOrIPhone) {
         try {
           const speech = new Recognition(); recognition.current = speech; speech.lang = "en-US"; speech.interimResults = false;
           speech.onresult = (event) => setHeard(event.results[0][0].transcript);
