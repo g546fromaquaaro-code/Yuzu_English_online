@@ -191,14 +191,118 @@ function Ordering({ lesson, onDone }: { lesson: Lesson; onDone: () => void }) {
   return <div className="exercise-card"><ExerciseHeader kicker="STEP 2 · WORD ORDER" title="英語を正しい順番にしよう" hint="単語をタップして並べよう" /><div className="prompt-bubble"><img src={lesson.image} alt="" /><div><small>この場面で使う文を作ろう</small><b>{lesson.speaking.replace("Yuzu", "〜")}</b></div></div><div className="answer-slots">{answer.length ? answer.map((w, i) => <button key={`${w}${i}`} onClick={() => remove(w, i)}>{w}</button>) : <span>ここに単語を並べてね</span>}</div><div className="word-pool">{pool.map((w, i) => <button key={`${w}${i}`} onClick={() => add(w, i)}>{w}</button>)}</div>{!checked ? <button className="check-button" disabled={pool.length > 0} onClick={() => { playSfx(correct ? "correct" : "wrong"); setChecked(true); }}>答え合わせ</button> : <Feedback ok={correct} retry={reset} onNext={onDone} />}</div>;
 }
 
-type SpeechRecognitionLike = { lang: string; interimResults: boolean; start: () => void; onresult: ((e: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => void) | null; onerror: (() => void) | null; onend: (() => void) | null };
+type SpeechRecognitionLike = { lang: string; interimResults: boolean; start: () => void; stop: () => void; onresult: ((e: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => void) | null; onerror: (() => void) | null; onend: (() => void) | null };
 
 function Speaking({ lesson, onDone }: { lesson: Lesson; onDone: () => void }) {
-  const [recording, setRecording] = useState(false); const [heard, setHeard] = useState(""); const recognition = useRef<SpeechRecognitionLike | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [recorded, setRecorded] = useState(false);
+  const [heard, setHeard] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
+  const [micError, setMicError] = useState("");
+  const [level, setLevel] = useState(0);
+  const recognition = useRef<SpeechRecognitionLike | null>(null);
+  const recorder = useRef<MediaRecorder | null>(null);
+  const stream = useRef<MediaStream | null>(null);
+  const chunks = useRef<Blob[]>([]);
+  const meterFrame = useRef<number | null>(null);
+  const autoStopTimer = useRef<number | null>(null);
+  const meterSource = useRef<MediaStreamAudioSourceNode | null>(null);
+  const audioUrlRef = useRef("");
   const normalized = (s: string) => s.toLowerCase().replace(/[^a-z0-9']/g, "").replace(/^i'm/, "iam");
   const score = heard ? Math.round((normalized(heard).split("").filter((c, i) => c === normalized(lesson.speaking)[i]).length / normalized(lesson.speaking).length) * 100) : 0;
-  const listen = () => { playSfx("tap"); const SpeechRecognition = (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition; if (!SpeechRecognition) { setHeard(lesson.speaking); playSfx("correct"); return; } const r = new SpeechRecognition(); recognition.current = r; r.lang = "en-US"; r.interimResults = false; r.onresult = (e) => { setHeard(e.results[0][0].transcript); playSfx("correct"); }; r.onerror = () => setRecording(false); r.onend = () => setRecording(false); setRecording(true); r.start(); };
-  return <div className="exercise-card speaking-card"><ExerciseHeader kicker="STEP 3 · SPEAK" title="お手本をまねして話そう" hint="大きな声でゆっくり話そう" /><div className="speak-visual"><img src={lesson.image} alt={lesson.scene} /><span>この場面を思いうかべて話そう</span></div><div className="model-sentence"><span>お手本</span><b>{lesson.speaking}</b><SpeakerButton text={lesson.speaking} /></div><div className={`mic-zone ${recording ? "recording" : ""}`}><button onClick={listen} aria-label="録音を開始"><span>●</span></button><b>{recording ? "聞いています…" : heard ? "もう一度話す" : "タップして話す"}</b><small>マイクの使用を許可してください</small></div>{heard && <div className="speech-result"><div><span>聞き取った英語</span><b>“{heard}”</b></div><strong>{score >= 55 ? "Good!" : "Nice try!"}<small>{Math.max(score, 72)}点</small></strong></div>}{heard && <button className="next-wide" onClick={onDone}>会話にチャレンジ →</button>}</div>;
+
+  const stopMeter = () => {
+    if (meterFrame.current !== null) window.cancelAnimationFrame(meterFrame.current);
+    meterFrame.current = null;
+    meterSource.current?.disconnect();
+    meterSource.current = null;
+    setLevel(0);
+  };
+
+  const stopRecording = () => {
+    if (autoStopTimer.current !== null) window.clearTimeout(autoStopTimer.current);
+    autoStopTimer.current = null;
+    try { recognition.current?.stop(); } catch { /* recognition may already be stopped */ }
+    recognition.current = null;
+    if (recorder.current && recorder.current.state !== "inactive") recorder.current.stop();
+    else {
+      stream.current?.getTracks().forEach((track) => track.stop());
+      stream.current = null;
+      stopMeter();
+      setRecording(false);
+    }
+  };
+
+  const startRecording = async () => {
+    playSfx("tap");
+    setMicError(""); setHeard(""); setRecorded(false);
+    if (!navigator.mediaDevices?.getUserMedia || !("MediaRecorder" in window)) {
+      setMicError("このブラウザでは録音を使えません。SafariまたはChromeを最新版にして、もう一度お試しください。");
+      return;
+    }
+    if (audioUrlRef.current) { URL.revokeObjectURL(audioUrlRef.current); audioUrlRef.current = ""; setAudioUrl(""); }
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      stream.current = mediaStream;
+      const preferredType = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"].find((type) => MediaRecorder.isTypeSupported(type));
+      const mediaRecorder = preferredType ? new MediaRecorder(mediaStream, { mimeType: preferredType }) : new MediaRecorder(mediaStream);
+      recorder.current = mediaRecorder; chunks.current = [];
+      mediaRecorder.ondataavailable = (event) => { if (event.data.size > 0) chunks.current.push(event.data); };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks.current, { type: mediaRecorder.mimeType || "audio/mp4" });
+        if (blob.size > 0) {
+          const url = URL.createObjectURL(blob); audioUrlRef.current = url; setAudioUrl(url); setRecorded(true); playSfx("correct");
+        } else setMicError("録音データを作れませんでした。もう一度マイクをタップしてください。");
+        mediaStream.getTracks().forEach((track) => track.stop());
+        stream.current = null; recorder.current = null; stopMeter(); setRecording(false);
+      };
+
+      const context = getAudioContext();
+      if (context) {
+        await context.resume();
+        const source = context.createMediaStreamSource(mediaStream);
+        const analyser = context.createAnalyser(); analyser.fftSize = 256; source.connect(analyser); meterSource.current = source;
+        const values = new Uint8Array(analyser.fftSize);
+        const updateMeter = () => {
+          analyser.getByteTimeDomainData(values);
+          let sum = 0; for (const value of values) { const sample = (value - 128) / 128; sum += sample * sample; }
+          setLevel(Math.min(100, Math.round(Math.sqrt(sum / values.length) * 260)));
+          meterFrame.current = window.requestAnimationFrame(updateMeter);
+        };
+        updateMeter();
+      }
+
+      const Recognition = (window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition;
+      if (Recognition) {
+        try {
+          const speech = new Recognition(); recognition.current = speech; speech.lang = "en-US"; speech.interimResults = false;
+          speech.onresult = (event) => setHeard(event.results[0][0].transcript);
+          speech.onerror = () => { recognition.current = null; };
+          speech.onend = () => { recognition.current = null; };
+          speech.start();
+        } catch { /* recording and playback still work without transcription */ }
+      }
+      mediaRecorder.start(250); setRecording(true);
+      autoStopTimer.current = window.setTimeout(stopRecording, 8000);
+    } catch (error) {
+      stream.current?.getTracks().forEach((track) => track.stop()); stream.current = null; stopMeter(); setRecording(false);
+      const name = error instanceof DOMException ? error.name : "";
+      setMicError(name === "NotAllowedError" || name === "SecurityError"
+        ? "マイクが許可されていません。Safariのアドレスバーにある「ぁあ」→［Webサイトの設定］→［マイク］→［許可］にしてください。"
+        : "マイクを開始できませんでした。ほかのアプリでマイクを使っていないか確認して、もう一度お試しください。");
+    }
+  };
+
+  useEffect(() => () => {
+    if (autoStopTimer.current !== null) window.clearTimeout(autoStopTimer.current);
+    if (meterFrame.current !== null) window.cancelAnimationFrame(meterFrame.current);
+    try { recognition.current?.stop(); } catch { /* already stopped */ }
+    if (recorder.current?.state !== "inactive") recorder.current?.stop();
+    stream.current?.getTracks().forEach((track) => track.stop());
+    if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+  }, []);
+
+  return <div className="exercise-card speaking-card"><ExerciseHeader kicker="STEP 3 · SPEAK" title="お手本をまねして話そう" hint="大きな声でゆっくり話そう" /><div className="speak-visual"><img src={lesson.image} alt={lesson.scene} /><span>この場面を思いうかべて話そう</span></div><div className="model-sentence"><span>お手本</span><b>{lesson.speaking}</b><SpeakerButton text={lesson.speaking} /></div><div className={`mic-zone ${recording ? "recording" : ""}`}><button onClick={recording ? stopRecording : startRecording} aria-label={recording ? "録音を停止" : "録音を開始"}><span>{recording ? "■" : "●"}</span></button><b>{recording ? "タップして録音を止める" : recorded ? "もう一度録音する" : "タップして話す"}</b><div className="mic-meter" aria-label="マイクの音量"><i style={{ width: `${recording ? Math.max(4, level) : 0}%` }} /></div><small>{recording ? "8秒で自動的に止まります" : "初回はマイクの使用を「許可」してください"}</small></div>{micError && <div className="mic-error"><b>マイクを確認してください</b><span>{micError}</span></div>}{audioUrl && <div className="recording-result"><div><b>✓ 録音できました！</b><span>自分の声を聞いて、お手本とくらべよう</span></div><audio controls src={audioUrl} /></div>}{heard && <div className="speech-result"><div><span>聞き取った英語</span><b>“{heard}”</b></div><strong>{score >= 55 ? "Good!" : "Nice try!"}<small>{score}点</small></strong></div>}{(recorded || heard) && <button className="next-wide" onClick={onDone}>会話にチャレンジ →</button>}</div>;
 }
 
 function Conversation({ lesson, onDone }: { lesson: Lesson; onDone: () => void }) {
